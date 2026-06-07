@@ -1,0 +1,44 @@
+name: EEE Korean Beauty — Feedback Processor
+
+on:
+  schedule:
+    - cron: "0 * * * *"   # runs every hour on the hour
+  workflow_dispatch:        # lets you trigger it manually from GitHub too
+
+jobs:
+  process-feedback:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Restore seen submissions cache
+        uses: actions/cache@v4
+        with:
+          path: seen_submissions.json
+          key: seen-submissions-${{ github.run_id }}
+          restore-keys: |
+            seen-submissions-
+
+      - name: Run feedback processor
+        env:
+          FORMSPREE_API_KEY: ${{ secrets.FORMSPREE_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          RESEND_API_KEY:    ${{ secrets.RESEND_API_KEY }}
+        run: python process_feedback.py
+
+      - name: Save seen submissions cache
+        if: always()
+        uses: actions/cache@v4
+        with:
+          path: seen_submissions.json
+          key: seen-submissions-${{ github.run_id }}
