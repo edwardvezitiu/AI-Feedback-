@@ -6,7 +6,7 @@ from datetime import datetime
 # ── Config ────────────────────────────────────────────────────────────────────
 FORMSPREE_API_KEY   = os.environ["FORMSPREE_API_KEY"]
 FORMSPREE_FORM_ID   = "mvznzopq"
-ANTHROPIC_API_KEY   = os.environ["ANTHROPIC_API_KEY"]
+GEMINI_API_KEY      = os.environ["GEMINI_API_KEY"]
 RESEND_API_KEY      = os.environ["RESEND_API_KEY"]
 BUSINESS_EMAIL      = "hello@eeekb.com"
 BRAND_NAME          = "EEE Korean Beauty Ltd"
@@ -31,9 +31,9 @@ def fetch_submissions():
     r.raise_for_status()
     return r.json().get("submissions", [])
 
-def ask_claude(submission_text):
+def ask_gemini(submission_text):
     """
-    Ask Claude to triage the submission and return structured JSON.
+    Ask Gemini to triage the submission and return structured JSON.
     Categories:
       - auto_reply   : simple complaint or refund request AI can handle
       - flag_only    : bug report, partnership, anything needing human
@@ -66,20 +66,15 @@ Rules:
 """
 
     r = requests.post(
-        "https://api.anthropic.com/v1/messages",
-        headers={
-            "x-api-key": ANTHROPIC_API_KEY,
-            "anthropic-version": "2023-06-01",
-            "content-type": "application/json",
-        },
+        f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}",
+        headers={"Content-Type": "application/json"},
         json={
-            "model": "claude-sonnet-4-20250514",
-            "max_tokens": 1000,
-            "messages": [{"role": "user", "content": prompt}],
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {"temperature": 0.2, "maxOutputTokens": 1000},
         },
     )
     r.raise_for_status()
-    raw = r.json()["content"][0]["text"].strip()
+    raw = r.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
     # Strip any accidental markdown fences
     raw = raw.replace("```json", "").replace("```", "").strip()
     return json.loads(raw)
@@ -142,9 +137,9 @@ def main():
         submitted_at = sub.get("_date", "unknown time")
 
         try:
-            result = ask_claude(text)
+            result = ask_gemini(text)
         except Exception as e:
-            print(f"  Claude error for {sub_id}: {e}")
+            print(f"  Gemini error for {sub_id}: {e}")
             seen.add(sub_id)
             continue
 
