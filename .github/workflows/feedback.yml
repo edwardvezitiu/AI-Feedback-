@@ -32,7 +32,7 @@ jobs:
       - name: Run feedback processor
         env:
           FORMSPREE_API_KEY: ${{ secrets.FORMSPREE_API_KEY }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY:    ${{ secrets.GEMINI_API_KEY }}
           RESEND_API_KEY:    ${{ secrets.RESEND_API_KEY }}
         run: python process_feedback.py
 
